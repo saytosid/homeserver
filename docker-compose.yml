@@ -1,19 +1,25 @@
 version: "3"
 
+networks:
+  internal:
+  web:
+    external: true
+
 services:
-  nginx: 
-    image: nginx:latest
-    container_name: production_nginx
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./nginx/:/etc/nginx/
-      - /etc/letsencrypt/:/etc/letsencrypt/
+  reverseproxy:
+    container_name: traefik
+    image: traefik
+    restart: always
     ports:
-      - 80:80
-      - 443:443
-    restart: unless-stopped
-    depends_on:
-      - pihole
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.toml:/traefik.toml
+      - ./acme.json:/acme.json
+    networks:
+      - web
 
   openvpn-as:
     # READ Application Setup: https://hub.docker.com/r/linuxserver/openvpn-as/
@@ -33,6 +39,14 @@ services:
       - 1194:1194/udp
       - 943:943/tcp  # Admin web UI
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=openvpn-as"
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:vpn.saytosid.duckdns.org"
+      - "traefik.port=943"
+    networks:
+      - web
 
   pihole:
     container_name: pihole
@@ -41,11 +55,9 @@ services:
       - "53:53/tcp"
       - "53:53/udp"
       - "67:67/udp"
-    
     expose:
       - "80"
       - "443"
-
     environment:
       TZ: 'Europe/London'
       # WEBPASSWORD: 'set a secure password here or it will be random'
@@ -58,6 +70,14 @@ services:
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=pihole"
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:ph.saytosid.duckdns.org"
+      - "traefik.port=80"
+    networks:
+      - web
 
 
   duckdns:
@@ -70,7 +90,62 @@ services:
     restart: unless-stopped
     depends_on:
       - pihole
+    networks:
+      - web
 
+  nextcloud:
+    container_name: nextcloud
+    image: wonderfall/nextcloud
+    depends_on:
+      - nextcloud-db           # If using MySQL
+    environment:
+      - UID=1000
+      - GID=1000
+      - UPLOAD_MAX_SIZE=10G
+      - APC_SHM_SIZE=128M
+      - OPCACHE_MEM_SIZE=128
+      - CRON_PERIOD=15m
+      - TZ=Europe/Berlin
+      - DOMAIN=localhost
+      - DB_TYPE=mysql
+      - DB_NAME=nextcloud
+      - DB_USER=nextcloud
+      - DB_PASSWORD=
+      - DB_HOST=nextcloud-db
+    volumes:
+      - ./nextcloud/data:/data
+      - ./nextcloud/config:/config
+      - ./nextcloud/apps:/apps2
+      - ./nextcloud/themes:/nextcloud/themes
+    expose:
+      - 8888
+    labels:
+      - "traefik.enable=true"
+      - "traefik.backend=nextcloud"
+      - "traefik.docker.network=web"
+      - "traefik.frontend.rule=Host:cloud.saytosid.duckdns.org"
+      - "traefik.port=8888"
+    depends_on:
+      - nextcloud-db
+    networks:
+      - web
+      - internal
+
+  # If using MySQL
+  nextcloud-db:
+    container_name: nextcloud-db
+    image: mariadb:10
+    volumes:
+      - ./nextcloud/db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+      - MYSQL_PASSWORD=
+    expose:
+      - 3306
+    networks:
+      - internal
 
 
 
