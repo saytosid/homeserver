@@ -1,3 +1,10 @@
+# If set to true invalid SSL certificates are accepted for backends.
+# Note: This disables detection of man-in-the-middle attacks so should only be used on secure backend networks.
+# Optional
+# Default: false
+#
+insecureSkipVerify = true
+
 debug = false
 logLevel = "ERROR"
 

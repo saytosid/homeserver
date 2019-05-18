@@ -45,6 +45,7 @@ services:
       - "traefik.docker.network=web"
       - "traefik.frontend.rule=Host:vpn.saytosid.duckdns.org"
       - "traefik.port=943"
+      - "traefik.protocol=https"
     networks:
       - web
 
