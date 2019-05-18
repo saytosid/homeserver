@@ -13,7 +13,15 @@ services:
     ports:
       - "80:80"
       - "443:443"
-      - "8080:8080"
+    expose:
+      - "8080"
+    labels:
+      traefik.enable: true
+      traefik.frontend.rule: "Host:traefik.saytosid.duckdns.org"
+      # get md5 from htpasswd or http://www.htaccesstools.com/htpasswd-generator/
+      # and then double all $ to $$ to avoid docker-compose 
+      traefik.frontend.auth.basic: "username:passwordMD5"
+      traefik.port: 8080
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./traefik.toml:/traefik.toml
