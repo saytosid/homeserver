@@ -33,6 +33,7 @@ services:
     # READ Application Setup: https://hub.docker.com/r/linuxserver/openvpn-as/
     image: linuxserver/openvpn-as
     container_name: openvpn-as
+    restart: always
     cap_add:
       - NET_ADMIN
     environment:
@@ -60,6 +61,7 @@ services:
   pihole:
     container_name: pihole
     image: pihole/pihole:latest
+    restart: always
     ports:
       - "53:53/tcp"
       - "53:53/udp"
@@ -78,7 +80,6 @@ services:
       - 1.1.1.1
     cap_add:
       - NET_ADMIN
-    restart: unless-stopped
     labels:
       - "traefik.enable=true"
       - "traefik.backend=pihole"
@@ -92,6 +93,7 @@ services:
   duckdns:
     image: linuxserver/duckdns
     container_name: duckdns
+    restart: always
     environment:
       - TZ=Europe/London
       - SUBDOMAINS=
@@ -105,6 +107,7 @@ services:
   nextcloud:
     container_name: nextcloud
     image: wonderfall/nextcloud
+    restart: always
     depends_on:
       - nextcloud-db           # If using MySQL
     environment:
@@ -144,6 +147,7 @@ services:
   nextcloud-db:
     container_name: nextcloud-db
     image: mariadb:10
+    restart: always
     volumes:
       - ./nextcloud/db:/var/lib/mysql
     environment:
