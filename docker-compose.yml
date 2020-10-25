@@ -27,6 +27,7 @@ services:
     labels:
       # reusable basic auth
       - traefik.http.middlewares.saytosid_auth.basicauth.users=${AUTH_PASSWORD}
+      - traefik.http.middlewares.testers_auth.basicauth.users=${TESTER_AUTH_PASSWORD}
 
       # global redirect to https
       - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https      
