@@ -150,28 +150,29 @@ services:
       - web
       - internal
 
-  cloud9:
-    image: linuxserver/cloud9
-    container_name: cloud9
+  code_server:
+    image: linuxserver/code-server
+    container_name: code_server
     environment:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
+      - SUDO_PASSWORD=${VSCODE_SUDO_PASSWORD}  # Inside vscode terminal
     volumes:
-      - ./cloud9-data/code:/code #optional
-      - /var/run/docker.sock:/var/run/docker.sock # Used to run docker or compose commands
+      - ./code-server-data/config:/config
     expose:
-      - 8000
-    restart: always
-    labels:
-      - traefik.http.routers.cloud9.rule=Host(`code.${DOMAIN}`)
-      - traefik.http.services.cloud9.loadbalancer.server.port=8000
-      - traefik.http.routers.cloud9.tls.certresolver=le
-      - traefik.http.routers.cloud9.entrypoints=websecure
-      - traefik.http.routers.cloud9.middlewares=saytosid_auth
+      - 8443
     networks:
       - web
-    
+    restart: always
+    labels:
+      - traefik.http.routers.code_server.rule=Host(`code.${DOMAIN}`)
+      - traefik.http.services.code_server.loadbalancer.server.port=8443
+      - traefik.http.services.code_server.loadbalancer.server.scheme=http
+      - traefik.http.routers.code_server.tls.certresolver=le
+      - traefik.http.routers.code_server.entrypoints=websecure
+      - traefik.http.routers.code_server.middlewares=saytosid_auth
+
 
   duckdns:
     image: linuxserver/duckdns
