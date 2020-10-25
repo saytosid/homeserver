@@ -5,6 +5,10 @@ networks:
   web:
     external: true
 
+volumes:
+  nextcloud:
+  db:
+
 services:
   traefik:  # https://traefik.io/blog/traefik-2-0-docker-101-fc2893944b9d/
     image: "traefik:v2.0.0"
@@ -112,6 +116,39 @@ services:
       - "traefik.http.routers.pihole.middlewares=saytosid_auth"
     networks:
       - web
+
+  nextcloud_db:
+    image: mariadb
+    command: --transaction-isolation=READ-COMMITTED --binlog-format=ROW
+    restart: always
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${NEXTCLOUD_DB_ROOT_PASSWORD}
+      - MYSQL_PASSWORD=${NEXTCLOUD_DB_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=nextcloud
+    networks:
+      - internal
+
+  nextcloud:
+    image: nextcloud
+    container_name: nextcloud
+    expose:
+      - 80
+    links:
+      - nextcloud_db:db
+    volumes:
+      - nextcloud:/var/www/html
+    restart: always
+    labels:
+      - traefik.http.routers.nextcloud.rule=Host(`cloud.${DOMAIN}`)
+      - traefik.http.services.nextcloud.loadbalancer.server.port=80
+      - traefik.http.routers.nextcloud.tls.certresolver=le
+      - traefik.http.routers.nextcloud.entrypoints=websecure
+    networks:
+      - web
+      - internal
 
 
   duckdns:
